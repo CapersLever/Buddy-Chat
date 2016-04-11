@@ -1,0 +1,76 @@
+'Capers Lever
+'Buddy Chat
+'CSCI 332 Applied Networking
+'Date Created:11/08/2013
+'Date Modified:11/08/2013
+'Grade: 95
+'Comments: This is a buddy chat program that allows two people to instant message eachother through their IP address. Built in Visual Studios using Visual Basic. To run open a new
+'         Visual Studio .NET project and copy and paste the solution. You will need to know your IP and the IP of the person your want to chat with.
+'
+Imports System.Net
+Imports System.Text
+Imports System.Threading
+Imports System.Net.Sockets
+Public Class Form1
+    Public recieveUdpClient As UdpClient
+    Public RemoteIPEndPoint As New IPEndPoint(IPAddress.Any, 0)
+    Public ThreadRecieve As Thread
+    Public receivedmessage As String
+    Public check As Boolean
+    Public listenport As Integer
+    Public runthread As Boolean = True
+
+    Private Sub SetButton_Click(sender As Object, e As EventArgs) Handles SetButton.Click
+        If (ListenPortBox.Text <> "") Then
+            listenport = ListenPortBox.Text
+            ThreadRecieve = New Thread(AddressOf RecieveMessages)
+            check = False
+            ThreadRecieve.Start()
+            SetButton.Enabled = False
+        Else
+            ConversationBox.Items.Add("Set Proper Listening Port")
+        End If
+    End Sub
+
+    Private Sub SendButton_Click(sender As Object, e As EventArgs) Handles SendButton.Click
+        Dim udpClient As New UdpClient
+        Dim GLOIP As IPAddress
+        Dim GLOINTPORT As Integer
+        Dim bytCommand As Byte() = New Byte() {}
+        GLOIP = IPAddress.Parse(IPBox.Text)
+        GLOINTPORT = BuddyPortBox.Text
+        udpClient.Connect(GLOIP, GLOINTPORT)
+        bytCommand = Encoding.ASCII.GetBytes(SayBox.Text)
+        udpClient.Send(bytCommand, bytCommand.Length)
+        ConversationBox.Items.Add("I Say: " + SayBox.Text)
+        SayBox.Text = ""
+    End Sub
+    Private Sub RecieveMessages()
+        Dim receivingUdpClient As New UdpClient(listenport)
+        Do While runthread
+            Try
+                Dim recieveBytes As [Byte]() = receivingUdpClient.Receive(RemoteIPEndPoint)
+                Dim returnData As String = Encoding.ASCII.GetString(recieveBytes)
+                receivedmessage = RemoteIPEndPoint.Address.ToString() + " says:" + returnData.ToString()
+                check = True
+                Me.Invalidate()
+            Catch ex As Exception
+                receivedmessage = ex.ToString()
+                Me.Invalidate()
+            End Try
+        Loop
+    End Sub
+
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ThreadRecieve = New Thread(AddressOf RecieveMessages)
+        check = False
+        ThreadRecieve.Start()
+    End Sub
+
+    Private Sub Form1_Paint(sender As Object, e As PaintEventArgs) Handles MyBase.Paint
+        If (check) Then
+            check = False
+            ConversationBox.Items.Add(receivedmessage)
+        End If
+    End Sub
+End Class
